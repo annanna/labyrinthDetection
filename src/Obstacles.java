@@ -14,17 +14,16 @@ public class Obstacles extends JPanel {
 	private static final int borderWidth = 5;
 	private static final int maxWidth = 400;
 	private static final int maxHeight = maxWidth;
-	private static final String initialFilename = "strecke1.jpg";
+	private String[] modes = new String[4];
+	private String currentMode = "";
 	private File openPath = new File(".");
 	
 	private static JFrame frame;
 	
 	private ImageView srcView;			// source image view
-	private int[][] obstacles= new int[10809][2];
-	private int[][] obstacleAlternative;
-	private int[][] obstacleAlternative2;
-	private int[][] redPixelsAlternative;
-	private int[][] redPixelsAlternative2;
+	private int[][] obstacles;
+	private int[] redPixels = new int[3];
+	FileWrite f;
 	private enum FileType {
 		NORMAL
 	}
@@ -36,37 +35,57 @@ public class Obstacles extends JPanel {
         super(new BorderLayout(borderWidth, borderWidth));
 
         setBorder(BorderFactory.createEmptyBorder(borderWidth,borderWidth,borderWidth,borderWidth));
- 
+        try {
+			f = new FileWrite();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+        modes[0] = "easy";
+        modes[1] = "medium";
+        modes[2] = "hard";
+        modes[3] = "extreme";
+        for(int i=0;i<modes.length;i++){
         // load the default image
-        File input = new File(initialFilename);
-        if(!input.canRead()) 
-        	input = fileDialog(DialogType.OPEN, FileType.NORMAL); // file not found, choose another image
-        
-        // create image views
-        srcView = new ImageView();
-        // control panel
-        JPanel controls = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(0,0,0,0);
-
-		// open image button
-        JButton loadSrc = new JButton("Open Source Image");
-        loadSrc.addActionListener(new ActionListener() {
-        	public void actionPerformed(ActionEvent e) {
-        		loadSrcFile(fileDialog(DialogType.OPEN, FileType.NORMAL));
-        	}        	
-        });
-                
-        controls.add(loadSrc, c);
-        
-        // image panel
-        JPanel images = new JPanel(new GridLayout(1,2));
-        images.add(srcView);
-        
-        add(controls, BorderLayout.NORTH);
-        add(images, BorderLayout.CENTER);
-        
-        loadSrcFile(input);
+        	String initialFilename = "";
+        	initialFilename = modes[i] + "Route.jpg";
+        	currentMode = modes[i];
+	        File input = new File(initialFilename);
+	        if(!input.canRead()) 
+	        	input = fileDialog(DialogType.OPEN, FileType.NORMAL); // file not found, choose another image
+	        
+	        // create image views
+	        srcView = new ImageView();
+	        // control panel
+	        JPanel controls = new JPanel(new GridBagLayout());
+	        GridBagConstraints c = new GridBagConstraints();
+	        c.insets = new Insets(0,0,0,0);
+	
+			// open image button
+	        JButton loadSrc = new JButton("Open Source Image");
+	        loadSrc.addActionListener(new ActionListener() {
+	        	public void actionPerformed(ActionEvent e) {
+	        		loadSrcFile(fileDialog(DialogType.OPEN, FileType.NORMAL));
+	        	}        	
+	        });
+	                
+	        controls.add(loadSrc, c);
+	        
+	        // image panel
+	        JPanel images = new JPanel(new GridLayout(1,2));
+	        images.add(srcView);
+	        
+	        add(controls, BorderLayout.NORTH);
+	        add(images, BorderLayout.CENTER);
+	        
+	        loadSrcFile(input);
+        }
+        try {
+			f.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	private File fileDialog(DialogType dType, FileType fType) {
@@ -112,13 +131,9 @@ public class Obstacles extends JPanel {
 		
 		srcView.loadImage(file);
 		srcView.setMaxSize(new Dimension(maxWidth, maxHeight));
-		obstacleAlternative = new int[srcView.getImgHeight()][srcView.getImgWidth()];
-		redPixelsAlternative = new int[srcView.getImgHeight()][srcView.getImgWidth()];
 		
-		obstacleAlternative2 = new int[srcView.getImgHeight()][srcView.getImgWidth()];
-		redPixelsAlternative2 = new int[srcView.getImgHeight()][srcView.getImgWidth()];
-		fill2DArray(obstacleAlternative2);
-		fill2DArray(redPixelsAlternative2);
+		obstacles = new int[srcView.getImgHeight()][srcView.getImgWidth()];
+		fill2DArray(obstacles);
 		findObstacles();
 		
 		
@@ -129,9 +144,9 @@ public class Obstacles extends JPanel {
 		int pixels[] = srcView.getPixels();
 		int width = srcView.getImgWidth();
 		int height = srcView.getImgHeight();
-		int xTemp = 0;
-		int xTempRed = 0;
-		int temp = 0;
+		int redXstart = 100000;
+		int redXend = 0;
+		int redY = 0;
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				int pos = y * width + x;
@@ -151,41 +166,29 @@ public class Obstacles extends JPanel {
 					r = 255; g = 0; b = 0;
 				}
 				
-				if(r == 0 && g == 0 && b == 0){
-					int[] t = {x, y};
-					obstacles[temp] = t;
-					temp++;
-					
-					
-					obstacleAlternative[y][xTemp] = x;
-					xTemp++;
-					
-					obstacleAlternative2[y][x]++;
+				if(r == 0 && g == 0 && b == 0){					
+					obstacles[y][x]++;
 				}else if(r == 255 && g == 0 && b == 0){
-					redPixelsAlternative[y][xTempRed] = x;
-					xTempRed++;
-					
-					redPixelsAlternative2[y][x]++;
-					System.out.println("x: "+x+" y: "+y);
+					if(x<redXstart){
+						redXstart = x;
+					}
+					if(x>redXend){
+						redXend = x;
+					}
+					redY = y;
 				}
 				pixels[pos] = (0xFF << 24) | (r << 16) | (g << 8) | b;
 			}
-			xTemp = 0;
-			xTempRed = 0;
 		}
-		srcView.setPixels(pixels);
-		System.out.println(redPixelsAlternative[66][0]);
+		System.out.println("start: " + redXstart + " end: " + redXend);
+		redPixels[0] = redXstart;
+		redPixels[1] = redXend;
+		redPixels[2] = redY;
+		srcView.setPixels(pixels);		
 		try {
-			
-			FileWrite f = new FileWrite();
-//			f.writeObstaclesToFile(obstacles);
-//			f.writeObstacleAlternativeToFile(obstacleAlternative);
-			f.writeObstacleAlternative2ToFile(obstacleAlternative2);
-//			f.writeRedPixelsToFile(redPixels);
-			f.writeRedPixelsAlternativeToFile(redPixelsAlternative);
-			f.closeEverything();
+			f.writeObstacles(currentMode, obstacles);
+			f.writeRedPixels(currentMode, redPixels);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
