@@ -7,8 +7,7 @@ public class FileWrite {
 
 	public FileWrite() throws IOException {
 		// fstream = new FileWriter("/Users/anna/lightcontrol/public/javascripts/obstacles.js");
-		fstream = new FileWriter(
-				"C:/Users/anna/Documents/Uni/5. Semester/Projekt/lightcontrol/public/javascripts/obstacles.js");
+		fstream = new FileWriter("C:/Users/anna/Documents/Uni/5. Semester/Projekt/lightcontrol/public/javascripts/obstacles.js");
 		out = new BufferedWriter(fstream);
 
 	}
@@ -44,15 +43,10 @@ public class FileWrite {
 	}
 
 	public void writeRedPixels(String varName, int[] array) throws IOException {
-		//var middleStartLine = {xStart: 6, xEnd: 8, y: 25};
 		out.newLine();
 		out.write("var " + varName + "StartLine = {");
 		String s = "xStart: " + array[0] + ", xEnd: " + array[1] + ", y: " + array[2];
 		out.write(s);
-//		System.out.println(s);
-//		System.out.println(counter);
-//		out.write("x: [" + s + "], ");
-//		out.write("y: " + y);
 		out.write("};");
 	}
 }
